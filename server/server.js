@@ -10,23 +10,21 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 // --- Middleware Setup ---
-app.use(
-  cors({
-    origin: ["http://localhost:3000", "http://10.18.115.237:3000"], // Your frontend URLs
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+const corsOptions = {
+  origin: process.env.CORS_ORIGIN, // Use an environment variable for the allowed origin
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
-
 
 const generateToken = (user) => {
   return jwt.sign(
     {
       userID: user.userid,
       userType: user.usertype,
-      username: user.username, 
+      username: user.username,
     },
     process.env.JWT_SECRET,
     { expiresIn: "1h" }
@@ -61,10 +59,10 @@ const authenticateToken = (req, res, next) => {
 
 const authenticateOptionalToken = (req, _res, next) => {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];     // Bearer TOKEN
+  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
   if (!token) {
-    req.user = null;      // guest
+    req.user = null; // guest
     return next();
   }
 
@@ -72,7 +70,7 @@ const authenticateOptionalToken = (req, _res, next) => {
     if (err) {
       req.user = null;
     } else {
-      req.user = user;    
+      req.user = user;
     }
     next();
   });
@@ -80,8 +78,8 @@ const authenticateOptionalToken = (req, _res, next) => {
 
 // --- Import Route Modules and their dependencies ---
 const adminModule = require("./routes/adminRoutes")({ db, authenticateToken });
-const adminRoutes = adminModule.router; 
-const authenticateAdmin = adminModule.authenticateAdmin; 
+const adminRoutes = adminModule.router;
+const authenticateAdmin = adminModule.authenticateAdmin;
 
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
@@ -98,11 +96,11 @@ app.use("/api/auth", authRoutes({ db, generateToken, authenticateToken }));
 app.use("/api/user", userRoutes({ db, authenticateToken }));
 app.use("/api/reviews", reviewRoutes({ db, authenticateToken }));
 app.use("/api/movies", movieRoutes({ db, authenticateOptionalToken }));
-app.use("/api/actors", actorRoutes({ db })); 
+app.use("/api/actors", actorRoutes({ db }));
 app.use("/api/watchlist", watchlistRoutes({ db, authenticateToken }));
-app.use("/api/users/watchlist", watchlistRoutes({ db, authenticateToken })); 
+app.use("/api/users/watchlist", watchlistRoutes({ db, authenticateToken }));
 app.use("/api/cast", castRatingRoutes({ db, authenticateToken }));
-app.use("/api/top-picks", topPicksRoutes({ db, authenticateOptionalToken })); 
+app.use("/api/top-picks", topPicksRoutes({ db, authenticateOptionalToken }));
 app.use("/api/user/admin", adminRoutes);
 app.use("/api/content-management", contentManagementRoutes({ db, authenticateAdmin, authenticateToken }));
 
